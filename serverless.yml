@@ -1,4 +1,4 @@
-service: kka-bucket-automation
+service: kka-automation
 
 frameworkVersion: '2'
 
@@ -9,7 +9,7 @@ plugins:
 custom:
   client:
     distributionFolder: build
-    bucketName: kka-bucket-automation
+    bucketName: kka-automation
 
 provider:
   name: aws
@@ -37,27 +37,38 @@ resources:
           Statement:
             - Sid: PublicReadGetObject
               Effect: Allow
-              Principal: "*"
-              Action:
-              - s3:GetObject
+              Action: s3:GetObject
               Resource: arn:aws:s3:::${self:custom.client.bucketName}/*
+              Principal:
+                AWS: !Sub arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}
+    CloudFrontOriginAccessIdentity:
+      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+      Properties:
+        CloudFrontOriginAccessIdentityConfig:
+          Comment: "automatedOAI"
     ## Specifying the CloudFront Distribution to server your Web Application
     WebAppCloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
       Properties:
         DistributionConfig:
+          Comment: 'Serverless automation'
           Origins:
-            - DomainName: ${self:custom.client.bucketName}.s3.amazonaws.com
+            - DomainName: ${self:custom.client.bucketName}.s3.eu-west-1.amazonaws.com
               ## An identifier for the origin which must be unique within the distribution
               Id: WebApp
-              CustomOriginConfig:
-                HTTPPort: 80
-                HTTPSPort: 443
-                OriginProtocolPolicy: https-only
               ## In case you want to restrict the bucket access use S3OriginConfig and remove CustomOriginConfig
-              # S3OriginConfig:
-              #   OriginAccessIdentity: origin-access-identity/cloudfront/E127EXAMPLE51Z
-          Enabled: 'true'
+              S3OriginConfig:
+                OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+            # - DomainName: ${self:custom.client.bucketName}.s3.amazonaws.com
+            #   ## An identifier for the origin which must be unique within the distribution
+            #   Id: WebApp
+            #   ## In case you want to restrict the bucket access use S3OriginConfig and remove CustomOriginConfig
+            #   S3OriginConfig:
+            #     OriginAccessIdentity: !Sub origin-access-identity/cloudfront${CloudFrontOriginAccessIdentity}
+          Enabled: true
+          IPV6Enabled: true
+          HttpVersion: http2
+
           ## Uncomment the following section in case you are using a custom domain
           # Aliases:
           # - mysite.example.com
@@ -70,13 +81,14 @@ resources:
               ResponsePagePath: /index.html
           DefaultCacheBehavior:
             AllowedMethods:
-              - DELETE
               - GET
               - HEAD
               - OPTIONS
-              - PATCH
-              - POST
-              - PUT
+            CachedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+            Compress: true
             ## The origin id defined above
             TargetOriginId: WebApp
             ## Defining if and how the QueryString and Cookies are forwarded to the origin which in this case is S3
@@ -97,6 +109,9 @@ resources:
 
   ## In order to print out the hosted domain via `serverless info` we need to define the DomainName output for CloudFormation
   Outputs:
+    WebAppS3BucketOutput:
+      Value:
+        'Ref': WebAppS3Bucket
     WebAppCloudFrontDistributionOutput:
       Value:
         'Fn::GetAtt': [ WebAppCloudFrontDistribution, DomainName ]
