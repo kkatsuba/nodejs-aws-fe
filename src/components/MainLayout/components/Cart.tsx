@@ -6,7 +6,7 @@ import axios from 'axios';
 import { useDispatch, useSelector } from "react-redux";
 import { selectCartItems, updateFromApi } from "store/cartSlice";
 import { Link } from 'react-router-dom';
-import API_PATHS from "../../../constants/apiPaths";
+import { API_PATHS } from "../../../constants/apiPaths";
 
 export default function Cart() {
   const dispatch = useDispatch();

@@ -1,6 +1,6 @@
 import React from 'react';
 import {makeStyles} from '@material-ui/core/styles';
-import API_PATHS from "constants/apiPaths";
+import { API_PATHS } from "constants/apiPaths";
 import ProductsTable from "components/pages/admin/PageProductImport/components/ProductsTable";
 import CSVFileImport from "components/pages/admin/PageProductImport/components/CSVFileImport";
 import Button from "@material-ui/core/Button";
